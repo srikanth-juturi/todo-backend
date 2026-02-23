@@ -8,8 +8,8 @@ class TodoRepository:
     def __init__(self, db_session: Session) -> None:
         self.db_session = db_session
 
-    def create_todo(self, *, title: str) -> Todo:
-        todo = Todo(title=title, is_completed=False)
+    def create_todo(self, *, title: str, category: str = "general") -> Todo:
+        todo = Todo(title=title, category=category, is_completed=False)
         self.db_session.add(todo)
         self.db_session.flush()
         self.db_session.refresh(todo)

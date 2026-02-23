@@ -16,6 +16,15 @@ def test_create_todo_trims_title_and_commits(db_session: Session) -> None:
     created = service.create_todo(TodoCreateRequest(title="  Keep clean  "))
 
     assert created.title == "Keep clean"
+    assert created.category == "general"
+
+
+def test_create_todo_trims_category_and_commits(db_session: Session) -> None:
+    service = TodoService(db_session)
+
+    created = service.create_todo(TodoCreateRequest(title="Keep clean", category="  Home  "))
+
+    assert created.category == "Home"
 
 
 @pytest.mark.parametrize("invalid_title", ["", "   "])
@@ -50,7 +59,18 @@ def test_update_todo_applies_partial_changes(db_session: Session) -> None:
 
     assert updated.id == created.id
     assert updated.title == "Pending"
+    assert updated.category == "general"
     assert updated.is_completed is True
+
+
+def test_update_todo_changes_category(db_session: Session) -> None:
+    service = TodoService(db_session)
+    created = service.create_todo(TodoCreateRequest(title="Sort inbox"))
+
+    updated = service.update_todo(todo_id=created.id, payload=TodoUpdateRequest(category="admin"))
+
+    assert updated.id == created.id
+    assert updated.category == "admin"
 
 
 def test_update_todo_without_changes_does_not_call_commit(db_session: Session) -> None:
@@ -61,11 +81,12 @@ def test_update_todo_without_changes_does_not_call_commit(db_session: Session) -
 
     unchanged = service.update_todo(
         todo_id=created.id,
-        payload=TodoUpdateRequest(title="No changes", is_completed=False),
+        payload=TodoUpdateRequest(title="No changes", category="general", is_completed=False),
     )
 
     assert unchanged.id == created.id
     assert unchanged.title == "No changes"
+    assert unchanged.category == "general"
     assert unchanged.is_completed is False
     service.db_session.commit.assert_not_called()
 

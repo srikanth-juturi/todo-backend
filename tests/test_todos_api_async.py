@@ -17,6 +17,7 @@ async def test_create_and_list_todos_contract(async_client: AsyncClient) -> None
     assert create_response.status_code == 201
     created = create_response.json()
     assert created["title"] == "Async task"
+    assert created["category"] == "general"
     assert created["is_completed"] is False
 
     list_response = await async_client.get("/api/v1/todos")
@@ -25,6 +26,7 @@ async def test_create_and_list_todos_contract(async_client: AsyncClient) -> None
     payload = list_response.json()
     assert len(payload) == 1
     assert payload[0]["id"] == created["id"]
+    assert payload[0]["category"] == "general"
 
 
 @pytest.mark.asyncio

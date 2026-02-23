@@ -15,6 +15,7 @@ def test_create_and_get_todo_by_id(db_session: Session) -> None:
     assert loaded is not None
     assert loaded.id == created.id
     assert loaded.title == "Read docs"
+    assert loaded.category == "general"
     assert loaded.is_completed is False
 
 
@@ -53,6 +54,7 @@ def test_save_persists_updated_fields(db_session: Session) -> None:
     db_session.commit()
 
     todo.title = "Updated"
+    todo.category = "work"
     todo.is_completed = True
     repository.save(todo)
     db_session.commit()
@@ -60,4 +62,16 @@ def test_save_persists_updated_fields(db_session: Session) -> None:
     refreshed = db_session.query(Todo).filter(Todo.id == todo.id).first()
     assert refreshed is not None
     assert refreshed.title == "Updated"
+    assert refreshed.category == "work"
     assert refreshed.is_completed is True
+
+
+def test_create_todo_persists_custom_category(db_session: Session) -> None:
+    repository = TodoRepository(db_session)
+
+    created = repository.create_todo(title="Refactor", category="engineering")
+    db_session.commit()
+
+    loaded = repository.get_todo_by_id(todo_id=created.id)
+    assert loaded is not None
+    assert loaded.category == "engineering"

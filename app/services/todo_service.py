@@ -15,7 +15,11 @@ class TodoService:
         if not normalized_title:
             raise TodoValidationError("Title must not be empty")
 
-        todo = self.todo_repository.create_todo(title=normalized_title)
+        normalized_category = payload.category.strip()
+        if not normalized_category:
+            raise TodoValidationError("Category must not be empty")
+
+        todo = self.todo_repository.create_todo(title=normalized_title, category=normalized_category)
         self.db_session.commit()
         return todo
 
@@ -30,6 +34,9 @@ class TodoService:
         has_changes = False
         if payload.title is not None and payload.title != todo.title:
             todo.title = payload.title
+            has_changes = True
+        if payload.category is not None and payload.category != todo.category:
+            todo.category = payload.category
             has_changes = True
         if payload.is_completed is not None and payload.is_completed != todo.is_completed:
             todo.is_completed = payload.is_completed

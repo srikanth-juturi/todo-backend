@@ -8,9 +8,18 @@ def test_create_todo_returns_201(client: TestClient) -> None:
     payload = response.json()
     assert payload["id"] > 0
     assert payload["title"] == "Buy milk"
+    assert payload["category"] == "general"
     assert payload["is_completed"] is False
     assert payload["created_at"]
     assert payload["updated_at"]
+
+
+def test_create_todo_accepts_category(client: TestClient) -> None:
+    response = client.post("/api/v1/todos", json={"title": "Buy milk", "category": "home"})
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["category"] == "home"
 
 
 def test_create_todo_rejects_whitespace_title(client: TestClient) -> None:
@@ -46,7 +55,22 @@ def test_patch_todo_partial_update(client: TestClient) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["title"] == "Write tests"
+    assert payload["category"] == "general"
     assert payload["is_completed"] is True
+
+
+def test_patch_todo_updates_category(client: TestClient) -> None:
+    created = client.post("/api/v1/todos", json={"title": "Write tests"}).json()
+
+    response = client.patch(
+        f"/api/v1/todos/{created['id']}",
+        json={"category": "work"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"] == "Write tests"
+    assert payload["category"] == "work"
 
 
 def test_delete_todo_then_patch_returns_404(client: TestClient) -> None:

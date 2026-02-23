@@ -95,6 +95,7 @@ Standard error response:
 
 - `id` bigint identity primary key
 - `title` nvarchar(200) not null
+- `category` nvarchar(50) not null default `general`
 - `is_completed` bit not null default 0
 - `created_at` datetime2 not null default current UTC timestamp
 - `updated_at` datetime2 not null default current UTC timestamp
@@ -103,6 +104,8 @@ Standard error response:
 
 - Title length <= 200 enforced at API validation and DB schema level.
 - Title must be non-empty after trim (API/service validation).
+- Category length <= 50 enforced at API validation and DB schema level.
+- Category defaults to `general` for backward compatibility when omitted.
 - `updated_at` updates on every mutable change.
 
 ## API Contracts v1
@@ -115,7 +118,8 @@ Request:
 
 ```json
 {
-  "title": "Buy milk"
+  "title": "Buy milk",
+  "category": "home"
 }
 ```
 
@@ -125,6 +129,7 @@ Response `201`:
 {
   "id": 1,
   "title": "Buy milk",
+  "category": "home",
   "is_completed": false,
   "created_at": "2026-02-23T10:00:00Z",
   "updated_at": "2026-02-23T10:00:00Z"
@@ -140,6 +145,7 @@ Response `200`:
   {
     "id": 2,
     "title": "Write tests",
+    "category": "general",
     "is_completed": true,
     "created_at": "2026-02-23T11:00:00Z",
     "updated_at": "2026-02-23T11:20:00Z"
@@ -154,6 +160,7 @@ Request (partial update):
 ```json
 {
   "title": "Write more tests",
+  "category": "work",
   "is_completed": false
 }
 ```

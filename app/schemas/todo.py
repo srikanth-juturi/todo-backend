@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 class TodoCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
+    category: str = Field(default="general", min_length=1, max_length=50)
 
     @field_validator("title")
     @classmethod
@@ -14,11 +15,20 @@ class TodoCreateRequest(BaseModel):
             raise ValueError("Title must not be empty")
         return trimmed_value
 
+    @field_validator("category")
+    @classmethod
+    def normalize_category(cls, value: str) -> str:
+        trimmed_value = value.strip()
+        if not trimmed_value:
+            raise ValueError("Category must not be empty")
+        return trimmed_value
+
 
 class TodoUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
+    category: str | None = Field(default=None, min_length=1, max_length=50)
     is_completed: bool | None = None
 
     @field_validator("title")
@@ -31,9 +41,19 @@ class TodoUpdateRequest(BaseModel):
             raise ValueError("Title must not be empty")
         return trimmed_value
 
+    @field_validator("category")
+    @classmethod
+    def normalize_optional_category(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        trimmed_value = value.strip()
+        if not trimmed_value:
+            raise ValueError("Category must not be empty")
+        return trimmed_value
+
     @model_validator(mode="after")
     def ensure_patch_has_at_least_one_field(self) -> "TodoUpdateRequest":
-        if self.title is None and self.is_completed is None:
+        if self.title is None and self.category is None and self.is_completed is None:
             raise ValueError("At least one field is required")
         return self
 
@@ -43,6 +63,7 @@ class TodoResponse(BaseModel):
 
     id: int
     title: str
+    category: str
     is_completed: bool
     created_at: datetime
     updated_at: datetime
