@@ -31,6 +31,65 @@ def test_create_todo_rejects_whitespace_title(client: TestClient) -> None:
     assert payload["error"]["trace_id"]
 
 
+def test_create_todo_defaults_empty_category_to_general(client: TestClient) -> None:
+    response = client.post("/api/v1/todos", json={"title": "Buy milk", "category": "   "})
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["category"] == "general"
+
+
+def test_create_todo_accepts_trimmed_category_at_max_boundary(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/todos",
+        json={"title": "Boundary", "category": f" {'a' * 50} "},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["category"] == "a" * 50
+
+
+def test_create_todo_normalizes_internal_category_whitespace(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/todos",
+        json={"title": "Plan trip", "category": "personal   errands"},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["category"] == "personal errands"
+
+
+def test_create_todo_rejects_duplicate_after_category_normalization(client: TestClient) -> None:
+    first_response = client.post(
+        "/api/v1/todos",
+        json={"title": "Pay bills", "category": "Home"},
+    )
+    second_response = client.post(
+        "/api/v1/todos",
+        json={"title": "Pay bills", "category": "  home  "},
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+    payload = second_response.json()
+    assert payload["error"]["code"] == "TODO_DUPLICATE"
+
+
+def test_patch_todo_coerces_numeric_category_payload(client: TestClient) -> None:
+    created = client.post("/api/v1/todos", json={"title": "Type coercion"}).json()
+
+    response = client.patch(
+        f"/api/v1/todos/{created['id']}",
+        json={"category": 101},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["category"] == "101"
+
+
 def test_list_todos_returns_newest_first(client: TestClient) -> None:
     client.post("/api/v1/todos", json={"title": "First"})
     client.post("/api/v1/todos", json={"title": "Second"})

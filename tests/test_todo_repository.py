@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.models.todo import Todo
 from app.repositories.todo_repository import TodoRepository
@@ -75,3 +77,12 @@ def test_create_todo_persists_custom_category(db_session: Session) -> None:
     loaded = repository.get_todo_by_id(todo_id=created.id)
     assert loaded is not None
     assert loaded.category == "engineering"
+
+
+def test_create_todo_rejects_category_beyond_db_limit(db_session: Session) -> None:
+    repository = TodoRepository(db_session)
+
+    repository.create_todo(title="Too long", category="x" * 51)
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
