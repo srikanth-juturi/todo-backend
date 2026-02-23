@@ -1,0 +1,5 @@
+Write-Host "[quality-gate] Backend checks (stub)"
+Write-Host "TODO: black --check ."
+Write-Host "TODO: ruff check ."
+Write-Host "TODO: mypy app"
+Write-Host "TODO: pytest -q"
