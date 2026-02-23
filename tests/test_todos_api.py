@@ -90,6 +90,27 @@ def test_patch_todo_coerces_numeric_category_payload(client: TestClient) -> None
     assert payload["category"] == "101"
 
 
+def test_patch_todo_rejects_duplicate_after_normalization(client: TestClient) -> None:
+    first = client.post(
+        "/api/v1/todos",
+        json={"title": "Pay bills", "category": "Home"},
+    ).json()
+    second = client.post(
+        "/api/v1/todos",
+        json={"title": "Another", "category": "Work"},
+    ).json()
+
+    response = client.patch(
+        f"/api/v1/todos/{second['id']}",
+        json={"title": " pay bills ", "category": "  home  "},
+    )
+
+    assert first["id"] != second["id"]
+    assert response.status_code == 409
+    payload = response.json()
+    assert payload["error"]["code"] == "TODO_DUPLICATE"
+
+
 def test_list_todos_returns_newest_first(client: TestClient) -> None:
     client.post("/api/v1/todos", json={"title": "First"})
     client.post("/api/v1/todos", json={"title": "Second"})

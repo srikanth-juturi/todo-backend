@@ -29,6 +29,23 @@ class TodoRepository:
             .first()
         )
 
+    def get_duplicate_for_update(
+        self,
+        *,
+        todo_id: int,
+        title: str,
+        category: str,
+    ) -> Todo | None:
+        return (
+            self.db_session.query(Todo)
+            .filter(
+                Todo.id != todo_id,
+                func.lower(Todo.title) == title.lower(),
+                func.lower(Todo.category) == category.lower(),
+            )
+            .first()
+        )
+
     def save(self, todo: Todo) -> Todo:
         self.db_session.add(todo)
         return todo

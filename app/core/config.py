@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     DATABASE_URL: str = (
-        "mssql+pyodbc://sa:YourStrong!Passw0rd@localhost%5CSQLEXPRESS/todo_db"
-        "?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+        "mssql+pyodbc://@localhost/todo"
+        "?driver=ODBC+Driver+17+for+SQL+Server&Trusted_Connection=yes&TrustServerCertificate=yes"
     )
     SQL_ECHO: bool = False
 

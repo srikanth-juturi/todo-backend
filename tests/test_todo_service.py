@@ -3,7 +3,7 @@ from unittest.mock import create_autospec
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.errors import TodoNotFoundError, TodoValidationError
+from app.core.errors import TodoDuplicateError, TodoNotFoundError, TodoValidationError
 from app.models.todo import Todo
 from app.repositories.todo_repository import TodoRepository
 from app.schemas.todo import TodoCreateRequest, TodoUpdateRequest
@@ -71,6 +71,20 @@ def test_update_todo_changes_category(db_session: Session) -> None:
 
     assert updated.id == created.id
     assert updated.category == "admin"
+
+
+def test_update_todo_rejects_duplicate_title_and_category(db_session: Session) -> None:
+    service = TodoService(db_session)
+    service.create_todo(TodoCreateRequest(title="Pay bills", category="Home"))
+    created = service.create_todo(TodoCreateRequest(title="Another", category="Work"))
+
+    with pytest.raises(TodoDuplicateError) as error:
+        service.update_todo(
+            todo_id=created.id,
+            payload=TodoUpdateRequest(title="pay bills", category=" home "),
+        )
+
+    assert error.value.code == "TODO_DUPLICATE"
 
 
 def test_update_todo_without_changes_does_not_call_commit(db_session: Session) -> None:

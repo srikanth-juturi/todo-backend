@@ -42,6 +42,9 @@ class TodoService:
             raise TodoNotFoundError(todo_id)
 
         has_changes = False
+        next_title = todo.title
+        next_category = todo.category
+
         if payload.title is not None:
             try:
                 normalized_title = normalize_title(payload.title)
@@ -49,7 +52,7 @@ class TodoService:
                 raise TodoValidationError(str(error)) from error
 
             if canonicalize_text(normalized_title) != canonicalize_text(todo.title):
-                todo.title = normalized_title
+                next_title = normalized_title
                 has_changes = True
 
         if payload.category is not None:
@@ -63,8 +66,24 @@ class TodoService:
                 raise TodoValidationError(str(error)) from error
 
             if canonicalize_text(normalized_category) != canonicalize_text(todo.category):
-                todo.category = normalized_category
+                next_category = normalized_category
                 has_changes = True
+
+        if has_changes and (
+            canonicalize_text(next_title) != canonicalize_text(todo.title)
+            or canonicalize_text(next_category) != canonicalize_text(todo.category)
+        ):
+            duplicate = self.todo_repository.get_duplicate_for_update(
+                todo_id=todo.id,
+                title=canonicalize_text(next_title),
+                category=canonicalize_text(next_category),
+            )
+            if duplicate is not None:
+                raise TodoDuplicateError(title=next_title, category=next_category)
+
+        todo.title = next_title
+        todo.category = next_category
+
         if payload.is_completed is not None and payload.is_completed != todo.is_completed:
             todo.is_completed = payload.is_completed
             has_changes = True
