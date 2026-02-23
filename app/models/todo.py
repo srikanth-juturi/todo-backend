@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, func, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -8,6 +8,9 @@ from app.models.base import Base
 
 class Todo(Base):
     __tablename__ = "todos"
+    __table_args__ = (
+        CheckConstraint("length(category) <= 50", name="ck_todos_category_len"),
+    )
 
     id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True

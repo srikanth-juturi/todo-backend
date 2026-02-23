@@ -1,55 +1,46 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.normalization import normalize_category, normalize_title
+
 
 class TodoCreateRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    category: str = Field(default="general", min_length=1, max_length=50)
+    title: str
+    category: str | None = Field(default="general")
 
     @field_validator("title")
     @classmethod
-    def normalize_title(cls, value: str) -> str:
-        trimmed_value = value.strip()
-        if not trimmed_value:
-            raise ValueError("Title must not be empty")
-        return trimmed_value
+    def normalize_title_field(cls, value: Any) -> str:
+        return normalize_title(value)
 
-    @field_validator("category")
+    @field_validator("category", mode="before")
     @classmethod
-    def normalize_category(cls, value: str) -> str:
-        trimmed_value = value.strip()
-        if not trimmed_value:
-            raise ValueError("Category must not be empty")
-        return trimmed_value
+    def normalize_category_field(cls, value: Any) -> str:
+        return normalize_category(value, default_if_empty=True, coerce_numeric=False)
 
 
 class TodoUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    title: str | None = Field(default=None, min_length=1, max_length=200)
-    category: str | None = Field(default=None, min_length=1, max_length=50)
+    title: str | None = None
+    category: str | int | float | None = None
     is_completed: bool | None = None
 
-    @field_validator("title")
+    @field_validator("title", mode="before")
     @classmethod
-    def normalize_optional_title(cls, value: str | None) -> str | None:
+    def normalize_optional_title(cls, value: Any) -> str | None:
         if value is None:
             return value
-        trimmed_value = value.strip()
-        if not trimmed_value:
-            raise ValueError("Title must not be empty")
-        return trimmed_value
+        return normalize_title(value)
 
-    @field_validator("category")
+    @field_validator("category", mode="before")
     @classmethod
-    def normalize_optional_category(cls, value: str | None) -> str | None:
+    def normalize_optional_category(cls, value: Any) -> str | None:
         if value is None:
             return value
-        trimmed_value = value.strip()
-        if not trimmed_value:
-            raise ValueError("Category must not be empty")
-        return trimmed_value
+        return normalize_category(value, default_if_empty=False, coerce_numeric=True)
 
     @model_validator(mode="after")
     def ensure_patch_has_at_least_one_field(self) -> "TodoUpdateRequest":

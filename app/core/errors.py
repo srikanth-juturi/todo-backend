@@ -44,6 +44,16 @@ class TodoValidationError(AppError):
         )
 
 
+class TodoDuplicateError(AppError):
+    def __init__(self, *, title: str, category: str) -> None:
+        super().__init__(
+            code="TODO_DUPLICATE",
+            message="A todo with the same title and category already exists",
+            status_code=409,
+            details={"title": title, "category": category},
+        )
+
+
 def build_error_response(*, code: str, message: str, details: Any, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

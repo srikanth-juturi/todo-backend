@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.core.errors import TodoNotFoundError, TodoValidationError
+from app.core.errors import TodoDuplicateError, TodoNotFoundError, TodoValidationError
+from app.core.normalization import canonicalize_text, normalize_category, normalize_title
 from app.repositories.todo_repository import TodoRepository
 from app.schemas.todo import TodoCreateRequest, TodoUpdateRequest
 
@@ -11,13 +12,22 @@ class TodoService:
         self.todo_repository = TodoRepository(db_session)
 
     def create_todo(self, payload: TodoCreateRequest):
-        normalized_title = payload.title.strip()
-        if not normalized_title:
-            raise TodoValidationError("Title must not be empty")
+        try:
+            normalized_title = normalize_title(payload.title)
+            normalized_category = normalize_category(
+                payload.category,
+                default_if_empty=True,
+                coerce_numeric=False,
+            )
+        except (TypeError, ValueError) as error:
+            raise TodoValidationError(str(error)) from error
 
-        normalized_category = payload.category.strip()
-        if not normalized_category:
-            raise TodoValidationError("Category must not be empty")
+        duplicate = self.todo_repository.get_todo_by_canonical_title_and_category(
+            title=canonicalize_text(normalized_title),
+            category=canonicalize_text(normalized_category),
+        )
+        if duplicate is not None:
+            raise TodoDuplicateError(title=normalized_title, category=normalized_category)
 
         todo = self.todo_repository.create_todo(title=normalized_title, category=normalized_category)
         self.db_session.commit()
@@ -32,12 +42,29 @@ class TodoService:
             raise TodoNotFoundError(todo_id)
 
         has_changes = False
-        if payload.title is not None and payload.title != todo.title:
-            todo.title = payload.title
-            has_changes = True
-        if payload.category is not None and payload.category != todo.category:
-            todo.category = payload.category
-            has_changes = True
+        if payload.title is not None:
+            try:
+                normalized_title = normalize_title(payload.title)
+            except (TypeError, ValueError) as error:
+                raise TodoValidationError(str(error)) from error
+
+            if canonicalize_text(normalized_title) != canonicalize_text(todo.title):
+                todo.title = normalized_title
+                has_changes = True
+
+        if payload.category is not None:
+            try:
+                normalized_category = normalize_category(
+                    payload.category,
+                    default_if_empty=False,
+                    coerce_numeric=True,
+                )
+            except (TypeError, ValueError) as error:
+                raise TodoValidationError(str(error)) from error
+
+            if canonicalize_text(normalized_category) != canonicalize_text(todo.category):
+                todo.category = normalized_category
+                has_changes = True
         if payload.is_completed is not None and payload.is_completed != todo.is_completed:
             todo.is_completed = payload.is_completed
             has_changes = True
